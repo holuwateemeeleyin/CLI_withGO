@@ -1,145 +1,121 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"io"
 	"os"
 )
 
 func main() {
-	// Check if at least a command was provided
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: minicli <command> [file]")
+		fmt.Println("Usage: mytool <command>")
+		fmt.Println("Commands: cat, ls, head, tail")
 		return
 	}
 
-	// Get the command (first argument after program name)
-	cmd := os.Args[1]
-	// Get the filename if provided (second argument after program name)
-	file := ""
-	if len(os.Args) > 2 {
-		file = os.Args[2]
-	}
+	command := os.Args[1]
 
-	// Route to the appropriate command function
-	if cmd == "cat" {
-		cat(file)
-	} else if cmd == "ls" {
-		ls()
-	} else if cmd == "head" {
-		head(file)
-	} else if cmd == "tail" {
-		tail(file)
-	} else {
-		fmt.Println("Unknown command")
+	switch command {
+	case "cat":
+		catCommand()
+	case "ls":
+		lsCommand()
+	case "head":
+		headCommand()
+	case "tail":
+		tailCommand()
+	default:
+		fmt.Println("Unknown command:", command)
 	}
 }
 
-// cat command - displays entire file content
-func cat(file string) {
-	// If no file specified, read from standard input (stdin)
-	if file == "" {
-		// Copy everything from stdin to stdout
-		io.Copy(os.Stdout, os.Stdin)
+func catCommand() {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: mytool cat <filename>")
 		return
 	}
 
-	// Read the entire file into memory
-	data, err := os.ReadFile(file)
+	filename := os.Args[2]
+	file, err := os.Open(filename)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
-	// Convert byte slice to string and print
-	fmt.Print(string(data))
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		fmt.Println(scanner.Text())
+	}
 }
 
-// ls command - lists files in current directory
-func ls() {
-	// Read all directory entries from current directory "."
-	files, err := os.ReadDir(".")
+func lsCommand() {
+	dir, err := os.Open(".")
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	defer dir.Close()
+
+	files, err := dir.Readdir(-1)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
 
-	// Print each file/directory name
 	for _, file := range files {
 		fmt.Println(file.Name())
 	}
 }
 
-// head command - displays first 10 lines of a file
-func head(file string) {
-	// Read the entire file
-	data, err := os.ReadFile(file)
+func headCommand() {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: mytool head <filename>")
+		return
+	}
+
+	filename := os.Args[2]
+	file, err := os.Open(filename)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
+	defer file.Close()
 
-	// Split file content into individual lines
-	lines := splitLines(string(data))
-
-	// Determine how many lines to show (max 10)
-	n := 10
-	if len(lines) < n {
-		n = len(lines)
-	}
-
-	// Print the first n lines
-	for i := 0; i < n; i++ {
-		fmt.Println(lines[i])
+	scanner := bufio.NewScanner(file)
+	lineCount := 0
+	for scanner.Scan() && lineCount < 10 {
+		fmt.Println(scanner.Text())
+		lineCount++
 	}
 }
 
-// tail command - displays last 10 lines of a file
-func tail(file string) {
-	// Read the entire file
-	data, err := os.ReadFile(file)
+func tailCommand() {
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: mytool tail <filename>")
+		return
+	}
+
+	filename := os.Args[2]
+	file, err := os.Open(filename)
 	if err != nil {
 		fmt.Println("Error:", err)
 		return
 	}
+	defer file.Close()
 
-	// Split file content into individual lines
-	lines := splitLines(string(data))
-
-	// Determine how many lines to show (max 10)
-	n := 10
-	if len(lines) < n {
-		n = len(lines)
+	var lines []string
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
 	}
 
-	// Calculate starting index for last n lines
-	start := len(lines) - n
-	// Print the last n lines
+	start := len(lines) - 10
+	if start < 0 {
+		start = 0
+	}
+	
 	for i := start; i < len(lines); i++ {
 		fmt.Println(lines[i])
 	}
-}
-
-// splitLines splits a string into lines based on newline characters
-func splitLines(s string) []string {
-	var lines []string // Slice to store the lines
-	var line []byte    // Temporary buffer for current line
-
-	// Loop through each character in the string
-	for i := 0; i < len(s); i++ {
-		// If we find a newline character, save the current line
-		if s[i] == '\n' {
-			lines = append(lines, string(line))
-			line = []byte{} // Reset line buffer for next line
-		} else {
-			// Add character to current line buffer
-			line = append(line, s[i])
-		}
-	}
-
-	// If there's any remaining content after last newline, add it as a line
-	if len(line) > 0 {
-		lines = append(lines, string(line))
-	}
-
-	return lines
 }
