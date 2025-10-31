@@ -30,8 +30,10 @@ func main() {
 		head(file)
 	} else if cmd == "tail" {
 		tail(file)
-	} else {
-		fmt.Println("Unknown command")
+	} else if cmd =="pwd" {
+		pwd()
+	}else {
+		fmt.Println("This is an unknown command")
 	}
 }
 
@@ -117,6 +119,16 @@ func tail(file string) {
 	for i := start; i < len(lines); i++ {
 		fmt.Println(lines[i])
 	}
+}
+
+// pwd command - prints the current working directory
+func pwd() {
+	dir, err := os.Getwd()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	fmt.Println(dir)
 }
 
 // splitLines splits a string into lines based on newline characters
